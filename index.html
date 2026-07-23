@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>背单词工具</title>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-sub: #4b5563;
+            --accent-color: #059669;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --type-bg: #e0e7ff;
+            --type-text: #3730a3;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 720px;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 12px;
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-sub);
+        }
+
+        select, input[type="file"] {
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            outline: none;
+            background: white;
+            font-size: 14px;
+        }
+
+        .checkbox-group {
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .word-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 25px;
+            min-height: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #fff;
+        }
+
+        .word-header {
+            text-align: center;
+        }
+
+        .word-title {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .word-phonetic {
+            font-size: 18px;
+            color: #64748b;
+            min-height: 24px;
+        }
+
+        .section-box {
+            background: #f8fafc;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            text-align: left;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: var(--text-sub);
+            margin-bottom: 8px;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 4px;
+        }
+
+        .trans-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .trans-item {
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pos-badge {
+            background-color: var(--type-bg);
+            color: var(--type-text);
+            font-size: 12px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-style: italic;
+        }
+
+        .phrase-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .phrase-item {
+            font-size: 15px;
+            line-height: 1.4;
+        }
+
+        .phrase-text {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            background-color: #cbd5e1 !important;
+            cursor: not-allowed;
+        }
+
+        #startStopBtn.stop { background-color: var(--danger-color); }
+        #pauseResumeBtn { background-color: var(--warning-color); }
+
+        .progress {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            color: var(--text-sub);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>背单词工具</h1>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="dictSelect">在线词库选择</label>
+            <select id="dictSelect">
+                <option value="">加载词库列表中...</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="fileInput">加载本地 JSON 词库</label>
+            <input type="file" id="fileInput" accept=".json">
+        </div>
+
+        <div class="control-group">
+            <label for="modeSelect">播放顺序</label>
+            <select id="modeSelect">
+                <option value="order">顺序播放</option>
+                <option value="random">随机播放</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="repeatSelect">英文朗读次数</label>
+            <select id="repeatSelect">
+                <option value="1">朗读 1 次</option>
+                <option value="3">朗读 3 次</option>
+            </select>
+        </div>
+
+        <div class="control-group checkbox-group">
+            <input type="checkbox" id="showWordCheck" checked>
+            <label for="showWordCheck">显示主单词</label>
+        </div>
+
+        <div class="control-group checkbox-group">
+            <input type="checkbox" id="showPhoneticCheck" checked>
+            <label for="showPhoneticCheck">显示音标</label>
+        </div>
+
+        <div class="control-group checkbox-group">
+            <input type="checkbox" id="showTransCheck" checked>
+            <label for="showTransCheck">显示多条注释</label>
+        </div>
+
+        <div class="control-group checkbox-group">
+            <input type="checkbox" id="showPhrasesCheck" checked>
+            <label for="showPhrasesCheck">显示词组及注释</label>
+        </div>
+
+        <div class="control-group checkbox-group">
+            <input type="checkbox" id="readTransCheck" checked>
+            <label for="readTransCheck">朗读中文释义</label>
+        </div>
+    </div>
+
+    <div class="word-card">
+        <div id="wordHeaderBox" class="word-header">
+            <div id="wordDisplay" class="word-title">等待加载...</div>
+            <div id="phoneticDisplay" class="word-phonetic"></div>
+        </div>
+
+        <div id="transBox" class="section-box">
+            <div class="section-title">单词注释 / 释义</div>
+            <ul id="transList" class="trans-list"></ul>
+        </div>
+
+        <div id="phrasesBox" class="section-box">
+            <div class="section-title">常用词组及注释</div>
+            <div id="phrasesList" class="phrase-list"></div>
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button id="prevBtn">上一个</button>
+        <button id="startStopBtn">▶ 开始</button>
+        <button id="pauseResumeBtn" disabled>⏸ 暂停</button>
+        <button id="nextBtn">下一个</button>
+    </div>
+
+    <div class="progress" id="progressDisplay">0 / 0</div>
+</div>
+
+<script>
+    const GITHUB_API_URL = "https://api.github.com/repos/KyleBing/english-vocabulary/contents/json";
+    const RAW_GITHUB_URL = "https://raw.githubusercontent.com/KyleBing/english-vocabulary/master/json/";
+    
+    // 免费在线词典 API 地址 (用于补全音标)
+    const DICTIONARY_API_URL = "https://api.dictionaryapi.dev/api/v2/entries/en/";
+
+    let rawData = [];
+    let playList = [];
+    let currentIndex = 0;
+    const synth = window.speechSynthesis;
+
+    let isPlaying = false;
+    let isPaused = false;
+
+    const dictSelect = document.getElementById('dictSelect');
+    const fileInput = document.getElementById('fileInput');
+    const modeSelect = document.getElementById('modeSelect');
+    const repeatSelect = document.getElementById('repeatSelect');
+
+    const showWordCheck = document.getElementById('showWordCheck');
+    const showPhoneticCheck = document.getElementById('showPhoneticCheck');
+    const showTransCheck = document.getElementById('showTransCheck');
+    const showPhrasesCheck = document.getElementById('showPhrasesCheck');
+    const readTransCheck = document.getElementById('readTransCheck');
+
+    const wordDisplay = document.getElementById('wordDisplay');
+    const phoneticDisplay = document.getElementById('phoneticDisplay');
+    const transBox = document.getElementById('transBox');
+    const transList = document.getElementById('transList');
+    const phrasesBox = document.getElementById('phrasesBox');
+    const phrasesList = document.getElementById('phrasesList');
+
+    const progressDisplay = document.getElementById('progressDisplay');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const startStopBtn = document.getElementById('startStopBtn');
+    const pauseResumeBtn = document.getElementById('pauseResumeBtn');
+
+    // 在线获取音标的函数
+    async function fetchOnlinePhonetic(word, targetIndex) {
+        try {
+            const res = await fetch(DICTIONARY_API_URL + encodeURIComponent(word));
+            if (!res.ok) throw new Error("无对应音标数据");
+            
+            const data = await res.json();
+            let phoneticText = "";
+
+            // 优先获取主音标，没有则寻找 phonetics 数组中的文本
+            if (data[0].phonetic) {
+                phoneticText = data[0].phonetic;
+            } else if (data[0].phonetics && data[0].phonetics.length > 0) {
+                const found = data[0].phonetics.find(p => p.text);
+                if (found) phoneticText = found.text;
+            }
+
+            if (phoneticText) {
+                // 确保获取完数据后，用户还没切到下一个单词
+                if (currentIndex === targetIndex) {
+                    phoneticDisplay.textContent = phoneticText.startsWith('[') || phoneticText.startsWith('/') 
+                        ? phoneticText 
+                        : `[${phoneticText}]`;
+                }
+                // 缓存回原数组，避免重复发请求
+                rawData[playList[targetIndex]].phonetic = phoneticText;
+            } else {
+                if (currentIndex === targetIndex) phoneticDisplay.textContent = "[暂无音标]";
+            }
+        } catch (err) {
+            if (currentIndex === targetIndex) phoneticDisplay.textContent = "[暂无音标]";
+        }
+    }
+
+    async function fetchCatalog() {
+        dictSelect.innerHTML = '<option value="">正在获取 GitHub 词库列表...</option>';
+        try {
+            const res = await fetch(GITHUB_API_URL);
+            if (!res.ok) throw new Error("GitHub API 请求失败");
+            
+            const data = await res.json();
+            const jsonFiles = data.filter(item => item.name.endsWith('.json'));
+
+            dictSelect.innerHTML = "";
+            jsonFiles.forEach(file => {
+                const opt = document.createElement('option');
+                opt.value = file.name;
+                opt.textContent = file.name.replace('.json', '');
+                dictSelect.appendChild(opt);
+            });
+
+            if (jsonFiles.length > 0) {
+                loadDictionary(jsonFiles[0].name);
+            }
+        } catch (err) {
+            wordDisplay.textContent = "词库列表获取失败";
+            dictSelect.innerHTML = '<option value="">获取失败（请检查网络）</option>';
+            console.error(err);
+        }
+    }
+
+    async function loadDictionary(fileName) {
+        stopPlayback();
+        wordDisplay.textContent = "词库加载中...";
+        phoneticDisplay.textContent = "";
+        transList.innerHTML = "";
+        phrasesList.innerHTML = "";
+
+        try {
+            const res = await fetch(RAW_GITHUB_URL + fileName);
+            if (!res.ok) throw new Error("无法读取指定词库");
+            
+            rawData = await res.json();
+            resetPlayList();
+            showWord(0);
+        } catch (err) {
+            wordDisplay.textContent = "加载失败";
+            transList.innerHTML = "<li>无法连接 GitHub 源地址</li>";
+            console.error(err);
+        }
+    }
+
+    fileInput.addEventListener('change', (e) => {
+        stopPlayback();
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                rawData = JSON.parse(event.target.result);
+                resetPlayList();
+                showWord(0);
+            } catch (err) {
+                alert("JSON 解析失败！");
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    function resetPlayList() {
+        playList = rawData.map((_, index) => index);
+        if (modeSelect.value === 'random') {
+            for (let i = playList.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [playList[i], playList[j]] = [playList[j], playList[i]];
+            }
+        }
+        currentIndex = 0;
+    }
+
+    function showWord(index) {
+        if (!rawData || !rawData.length) return;
+
+        const item = rawData[playList[index]];
+        const wordStr = item.word || item.w || "";
+
+        wordDisplay.textContent = wordStr;
+        
+        // 判定与处理音标
+        const localPhonetic = item.phonetic || item.p || "";
+        if (localPhonetic) {
+            phoneticDisplay.textContent = localPhonetic.startsWith('[') || localPhonetic.startsWith('/') 
+                ? localPhonetic 
+                : `[${localPhonetic}]`;
+        } else if (wordStr) {
+            // 本地无音标，向 API 实时查询
+            phoneticDisplay.textContent = "查询音标中...";
+            fetchOnlinePhonetic(wordStr, index);
+        } else {
+            phoneticDisplay.textContent = "";
+        }
+
+        // 解析释义
+        transList.innerHTML = "";
+        let translations = item.translations || [];
+        if (translations.length > 0) {
+            translations.forEach(t => {
+                const li = document.createElement('li');
+                li.className = 'trans-item';
+                const typeHtml = t.type ? `<span class="pos-badge">${t.type}.</span>` : '';
+                li.innerHTML = `${typeHtml} <span>${t.translation || t}</span>`;
+                transList.appendChild(li);
+            });
+        } else {
+            const rawM = item.m || item.meaning || item.trans || "";
+            const list = Array.isArray(rawM) ? rawM : String(rawM).split('\n');
+            list.forEach(m => {
+                if (m) {
+                    const li = document.createElement('li');
+                    li.className = 'trans-item';
+                    li.textContent = m;
+                    transList.appendChild(li);
+                }
+            });
+        }
+
+        // 解析词组
+        phrasesList.innerHTML = "";
+        let phrases = item.phrases || item.ph || [];
+        if (Array.isArray(phrases) && phrases.length > 0) {
+            phrases.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'phrase-item';
+                const pText = p.phrase || p.p || (typeof p === 'string' ? p : '');
+                const pTrans = p.translation || p.m || p.meaning || '';
+                div.innerHTML = `<span class="phrase-text">${pText}</span> ${pTrans ? ' : ' + pTrans : ''}`;
+                phrasesList.appendChild(div);
+            });
+        } else {
+            phrasesList.innerHTML = "<div style='color:#94a3b8; font-size:14px;'>暂无关联词组</div>";
+        }
+
+        progressDisplay.textContent = `${index + 1} / ${rawData.length}`;
+        updateVisibilityControls();
+
+        if (isPlaying && !isPaused) {
+            playSequence();
+        }
+    }
+
+    function playSequence() {
+        synth.cancel();
+        if (!isPlaying || isPaused || !rawData || !rawData.length) return;
+
+        const item = rawData[playList[currentIndex]];
+        const wordText = item.word || item.w || "";
+
+        let transTexts = [];
+        if (item.translations && item.translations.length > 0) {
+            transTexts = item.translations.map(t => t.translation);
+        } else if (item.m || item.meaning || item.trans) {
+            const rawM = item.m || item.meaning || item.trans;
+            transTexts = Array.isArray(rawM) ? rawM : [rawM];
+        }
+
+        const repeatTimes = parseInt(repeatSelect.value, 10) || 1;
+        const speechQueue = [];
+
+        for (let i = 0; i < repeatTimes; i++) {
+            if (wordText) {
+                const utter = new SpeechSynthesisUtterance(wordText);
+                utter.lang = 'en-US';
+                speechQueue.push(utter);
+            }
+        }
+
+        if (readTransCheck.checked && transTexts.length > 0) {
+            const transUtter = new SpeechSynthesisUtterance(transTexts.join('，'));
+            transUtter.lang = 'zh-CN';
+            speechQueue.push(transUtter);
+        }
+
+        if (speechQueue.length === 0) {
+            nextWord();
+            return;
+        }
+
+        for (let i = 0; i < speechQueue.length; i++) {
+            if (i < speechQueue.length - 1) {
+                speechQueue[i].onend = () => {
+                    if (isPlaying && !isPaused) synth.speak(speechQueue[i + 1]);
+                };
+            } else {
+                speechQueue[i].onend = () => {
+                    if (isPlaying && !isPaused) {
+                        setTimeout(() => { nextWord(); }, 400);
+                    }
+                };
+            }
+        }
+
+        synth.speak(speechQueue[0]);
+    }
+
+    function updateVisibilityControls() {
+        wordDisplay.classList.toggle('hidden', !showWordCheck.checked);
+        phoneticDisplay.classList.toggle('hidden', !showPhoneticCheck.checked);
+        transBox.classList.toggle('hidden', !showTransCheck.checked);
+        phrasesBox.classList.toggle('hidden', !showPhrasesCheck.checked);
+    }
+
+    function toggleStartStop() {
+        if (!isPlaying) {
+            isPlaying = true;
+            isPaused = false;
+            startStopBtn.textContent = "◼ 停止";
+            startStopBtn.classList.add("stop");
+            pauseResumeBtn.disabled = false;
+            pauseResumeBtn.textContent = "⏸ 暂停";
+            playSequence();
+        } else {
+            stopPlayback();
+        }
+    }
+
+    function stopPlayback() {
+        isPlaying = false;
+        isPaused = false;
+        synth.cancel();
+        startStopBtn.textContent = "▶ 开始";
+        startStopBtn.classList.remove("stop");
+        pauseResumeBtn.disabled = true;
+        pauseResumeBtn.textContent = "⏸ 暂停";
+    }
+
+    function togglePauseResume() {
+        if (!isPlaying) return;
+
+        if (!isPaused) {
+            isPaused = true;
+            synth.pause();
+            pauseResumeBtn.textContent = "▶ 继续";
+        } else {
+            isPaused = false;
+            if (synth.paused) {
+                synth.resume();
+            } else {
+                playSequence();
+            }
+            pauseResumeBtn.textContent = "⏸ 暂停";
+        }
+    }
+
+    function nextWord() {
+        if (currentIndex < playList.length - 1) {
+            currentIndex++;
+            showWord(currentIndex);
+        } else {
+            stopPlayback();
+            alert("词库播放完毕！");
+        }
+    }
+
+    function prevWord() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            showWord(currentIndex);
+        }
+    }
+
+    dictSelect.addEventListener('change', (e) => loadDictionary(e.target.value));
+    modeSelect.addEventListener('change', () => {
+        stopPlayback();
+        resetPlayList();
+        showWord(0);
+    });
+
+    startStopBtn.addEventListener('click', toggleStartStop);
+    pauseResumeBtn.addEventListener('click', togglePauseResume);
+
+    prevBtn.addEventListener('click', () => { synth.cancel(); prevWord(); });
+    nextBtn.addEventListener('click', () => { synth.cancel(); nextWord(); });
+
+    showWordCheck.addEventListener('change', updateVisibilityControls);
+    showPhoneticCheck.addEventListener('change', updateVisibilityControls);
+    showTransCheck.addEventListener('change', updateVisibilityControls);
+    showPhrasesCheck.addEventListener('change', updateVisibilityControls);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') { synth.cancel(); nextWord(); }
+        if (e.key === 'ArrowLeft') { synth.cancel(); prevWord(); }
+        if (e.key === ' ') { e.preventDefault(); togglePauseResume(); }
+    });
+
+    fetchCatalog();
+</script>
+
+</body>
+</html>
