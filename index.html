@@ -302,8 +302,11 @@
 </div>
 
 <script>
-    const GITHUB_API_URL = "https://api.github.com/repos/KyleBing/english-vocabulary/contents/json";
-    const RAW_GITHUB_URL = "https://raw.githubusercontent.com/KyleBing/english-vocabulary/master/json/";
+// 获取该仓库下的文件列表元数据
+    const GITHUB_API_URL = "https://api.github.com/repos/hhl760417/word2/contents/";
+
+// 直接下载/读取具体 JSON 文件的基准路径（注意末尾的斜杠 /）
+    const RAW_GITHUB_URL = "https://raw.githubusercontent.com/hhl760417/word2/main/";
     
     // 免费在线词典 API 地址 (用于补全音标)
     const DICTIONARY_API_URL = "https://api.dictionaryapi.dev/api/v2/entries/en/";
